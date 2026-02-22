@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>🥷 Ninjago Spinjitzu-Training</title>
+  <style>
+    :root {
+      --primary-red: #990000;
+      --accent-gold: #FFD700;
+      --bg-dark: #2c2416;
+      --text-light: #f0f0f0;
+      --damage-red: #ff3333;
+      --field-base: #e8dcc0;
+      --field-active: #f5ecd7;
+      --field-border: #8b7355;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: #f0f0f0;
+      overflow: hidden;
+      height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #game-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: var(--primary-red);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-icon {
+      font-size: 32px;
+    }
+
+    .player-name {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .score {
+      font-size: 36px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: var(--accent-gold);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .lives {
+      font-size: 28px;
+      letter-spacing: 4px;
+    }
+
+    #game-stage {
+      margin-top: 70px;
+      height: calc(100vh - 70px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 1;
+    }
+
+    .field {
+      aspect-ratio: 1;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          var(--field-base) 0px,
+          var(--field-base) 3px,
+          #d4c8ac 3px,
+          #d4c8ac 6px
+        );
+      border: 4px solid var(--field-border);
+      border-radius: 8px;
+      box-shadow:
+        inset 0 0 12px rgba(139,115,85,0.3),
+        0 3px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 72px;
+      transition: all 150ms;
+    }
+
+    .field:active {
+      transform: scale(0.92);
+    }
+
+    .field.has-emoji {
+      background:
+        repeating-linear-gradient(
+          90deg,
+          var(--field-active) 0px,
+          var(--field-active) 3px,
+          #e0d4b8 3px,
+          #e0d4b8 6px
+        );
+      box-shadow:
+        inset 0 0 20px rgba(255,215,0,0.4),
+        0 3px 8px rgba(0,0,0,0.4);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .overlay-content {
+      text-align: center;
+      padding: 40px;
+      max-width: 600px;
+    }
+
+    .overlay h1 {
+      font-size: 52px;
+      margin-bottom: 20px;
+      color: var(--accent-gold);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      line-height: 1.2;
+    }
+
+    .overlay h2 {
+      font-size: 36px;
+      margin-bottom: 20px;
+      color: var(--accent-gold);
+    }
+
+    .overlay p {
+      font-size: 20px;
+      margin-bottom: 32px;
+      opacity: 0.9;
+    }
+
+    .big-score {
+      font-size: 80px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: var(--accent-gold);
+      margin: 24px 0;
+      text-shadow: 0 4px 12px rgba(255,215,0,0.5);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-red), #770000);
+      color: var(--accent-gold);
+      border: 3px solid var(--accent-gold);
+      border-radius: 12px;
+      padding: 18px 36px;
+      font-size: 22px;
+      font-weight: bold;
+      text-transform: uppercase;
+      box-shadow: 0 4px 12px rgba(153,0,0,0.5);
+      cursor: pointer;
+      transition: all 200ms;
+      letter-spacing: 1px;
+      margin: 8px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(153,0,0,0.7);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-character {
+      background: linear-gradient(135deg, #444, #222);
+      color: var(--text-light);
+      border: 3px solid var(--accent-gold);
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 200ms;
+      text-align: center;
+    }
+
+    .btn-character:hover {
+      transform: scale(1.05);
+      border-color: #fff;
+      box-shadow: 0 4px 16px rgba(255,215,0,0.6);
+    }
+
+    .btn-character:active {
+      transform: scale(0.95);
+    }
+
+    .character-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 32px 0;
+    }
+
+    .results-table {
+      margin: 32px 0;
+      font-size: 26px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      padding: 16px 28px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+
+    .result-row span:last-child {
+      color: var(--accent-gold);
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+    }
+
+    .points-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      pointer-events: none;
+      z-index: 10;
+      animation: pointsPopup 1000ms ease-out forwards;
+    }
+
+    @keyframes spawn {
+      0% {
+        transform: scale(0) translateY(20px);
+        opacity: 0;
+      }
+      60% {
+        transform: scale(1.15) translateY(0);
+      }
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes hitGood {
+      0% {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+      50% {
+        transform: scale(1.4);
+        filter: brightness(1.6);
+      }
+      100% {
+        transform: scale(0.4) translateY(-100px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes damage {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-12px); }
+      75% { transform: translateX(12px); }
+    }
+
+    @keyframes miss {
+      to {
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+
+    @keyframes flash {
+      0%, 100% { background: var(--field-base); }
+      50% { background: var(--damage-red); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+    }
+
+    @keyframes pointsPopup {
+      0% {
+        opacity: 0;
+        transform: translateY(0) scale(0.5);
+      }
+      30% {
+        opacity: 1;
+        transform: translateY(-20px) scale(1.2);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-80px) scale(1);
+      }
+    }
+
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: #f0f;
+      position: absolute;
+      animation: confetti-fall 3s linear forwards;
+      z-index: 1000;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    .ninja-result-image {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--accent-gold);
+      margin: 0 auto 12px;
+      display: block;
+    }
+
+    .winner-ninja-image {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 5px solid var(--accent-gold);
+      margin: 20px auto;
+      display: block;
+      box-shadow: 0 0 30px rgba(255,215,0,0.6);
+    }
+  </style>
+</head>
+<body>
+  <header id="game-header">
+    <div class="player-info">
+      <div class="player-icon">🔴</div>
+      <div class="player-name">Spieler 1</div>
+    </div>
+    <div class="score">0</div>
+    <div class="lives">❤️❤️❤️</div>
+  </header>
+
+  <main id="game-stage">
+    <div class="game-grid">
+      <div class="field" data-index="0"></div>
+      <div class="field" data-index="1"></div>
+      <div class="field" data-index="2"></div>
+      <div class="field" data-index="3"></div>
+      <div class="field" data-index="4"></div>
+      <div class="field" data-index="5"></div>
+      <div class="field" data-index="6"></div>
+      <div class="field" data-index="7"></div>
+      <div class="field" data-index="8"></div>
+    </div>
+  </main>
+
+  <div id="screen-mode-select" class="overlay active">
+    <div class="overlay-content">
+      <img src="Titel.webp" alt="Ninjago" style="max-width: 100%; height: auto; margin-bottom: 30px; border-radius: 12px;">
+      <p style="font-size: 24px; margin-bottom: 24px;">Wie viele Ninja trainieren heute?</p>
+      <button class="btn-primary" id="btn-1-player">1 Spieler</button>
+      <button class="btn-primary" id="btn-2-players">2 Spieler</button>
+    </div>
+  </div>
+
+  <div id="screen-character-select" class="overlay">
+    <div class="overlay-content">
+      <h2 id="character-select-title">Wähle deinen Ninja</h2>
+      <div class="character-grid">
+        <button class="btn-character" data-character="kai" data-icon="🔴" data-color="red">
+          <img src="Kai.jpg" alt="Kai" style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+          <div style="font-weight: bold; font-size: 20px;">Kai</div>
+          <div style="font-size: 14px; opacity: 0.7; margin-top: 4px;">Feuer</div>
+        </button>
+        <button class="btn-character" data-character="jay" data-icon="🔵" data-color="blue">
+          <img src="Jay.jpg" alt="Jay" style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+          <div style="font-weight: bold; font-size: 20px;">Jay</div>
+          <div style="font-size: 14px; opacity: 0.7; margin-top: 4px;">Blitz</div>
+        </button>
+        <button class="btn-character" data-character="lloyd" data-icon="🟢" data-color="green">
+          <img src="Lloyd.jpg" alt="Lloyd" style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+          <div style="font-weight: bold; font-size: 20px;">Lloyd</div>
+          <div style="font-size: 14px; opacity: 0.7; margin-top: 4px;">Energie</div>
+        </button>
+        <button class="btn-character" data-character="zane" data-icon="⚪" data-color="white">
+          <img src="Zane.jpg" alt="Zane" style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+          <div style="font-weight: bold; font-size: 20px;">Zane</div>
+          <div style="font-size: 14px; opacity: 0.7; margin-top: 4px;">Eis</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-ready" class="overlay">
+    <div class="overlay-content">
+      <h2 id="ready-title">Mach dich bereit!</h2>
+      <p style="font-size: 28px; margin: 30px 0; line-height: 1.6;">
+        <strong style="color: var(--accent-gold);">Tippe an:</strong><br>
+        🪙 = 10 Punkte | 💚 = 30 Punkte<br><br>
+        <strong style="color: var(--damage-red);">NICHT antippen:</strong><br>
+        🔥 🥷 = -1 Leben
+      </p>
+      <button class="btn-primary" id="btn-start-game">Los geht's!</button>
+    </div>
+  </div>
+
+  <div id="screen-intermission" class="overlay">
+    <div class="overlay-content">
+      <h2 id="intermission-player">Spieler 1</h2>
+      <div class="big-score" id="intermission-score">0 Punkte</div>
+      <p style="font-size: 24px;">Spieler 2, du bist dran!</p>
+      <button class="btn-primary" id="btn-next-player">Weiter</button>
+    </div>
+  </div>
+
+  <div id="screen-results" class="overlay">
+    <div class="overlay-content">
+      <h2 id="winner-text">🎉 Ergebnis</h2>
+      <div class="results-table" id="results-content">
+        <div class="result-row">
+          <span>Spieler 1:</span>
+          <span id="p1-final-score">0</span>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-restart">Nochmal spielen</button>
+    </div>
+  </div>
+
+  <script>
+    const GameState = {
+      MODE_SELECT: 'mode_select',
+      CHARACTER_SELECT: 'character_select',
+      READY: 'ready',
+      PLAYING: 'playing',
+      INTERMISSION: 'intermission',
+      RESULTS: 'results'
+    };
+
+    let currentState = GameState.MODE_SELECT;
+    let gameMode = null; // '1player' or '2player'
+
+    const player1 = { name: 'Spieler 1', score: 0, lives: 3, character: null, icon: '🔴', colors: null };
+    const player2 = { name: 'Spieler 2', score: 0, lives: 3, character: null, icon: '🔵', colors: null };
+    let currentPlayer = null;
+    let waitingForCharacterSelect = null;
+
+    let spawnTimeout = null;
+    let lastSpawnIndex = -1;
+    const fields = [];
+
+    // Audio Context für Soundeffekte
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playPositiveSound() {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    }
+
+    function playNegativeSound() {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    }
+
+    function playVictorySound() {
+      // Epischer Akkord mit 3 Tönen
+      const frequencies = [523.25, 659.25, 783.99]; // C, E, G
+      const now = audioContext.currentTime;
+
+      frequencies.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, now);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.2, now + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+
+        oscillator.start(now);
+        oscillator.stop(now + 1.5);
+      });
+
+      // Zusätzlicher höherer Ton für Glanz
+      setTimeout(() => {
+        const sparkle = audioContext.createOscillator();
+        const sparkleGain = audioContext.createGain();
+
+        sparkle.connect(sparkleGain);
+        sparkleGain.connect(audioContext.destination);
+
+        sparkle.type = 'sine';
+        sparkle.frequency.setValueAtTime(1046.5, audioContext.currentTime);
+
+        sparkleGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+        sparkleGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+
+        sparkle.start(audioContext.currentTime);
+        sparkle.stop(audioContext.currentTime + 0.8);
+      }, 200);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initFields();
+      initButtons();
+      setState(GameState.MODE_SELECT);
+    });
+
+    function initFields() {
+      const fieldElements = document.querySelectorAll('.field');
+      fieldElements.forEach((el, index) => {
+        fields[index] = {
+          element: el,
+          emoji: null,
+          disappearTimeout: null
+        };
+
+        el.addEventListener('click', () => handleFieldTap(index));
+
+        el.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          el.style.transform = 'scale(0.92)';
+        }, {passive: false});
+
+        el.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          el.style.transform = '';
+          handleFieldTap(index);
+        }, {passive: false});
+      });
+    }
+
+    function initButtons() {
+      document.getElementById('btn-1-player').addEventListener('click', () => selectMode('1player'));
+      document.getElementById('btn-2-players').addEventListener('click', () => selectMode('2player'));
+
+      document.querySelectorAll('.btn-character').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const character = btn.dataset.character;
+          const icon = btn.dataset.icon;
+          selectCharacter(character, icon);
+        });
+      });
+
+      document.getElementById('btn-start-game').addEventListener('click', startGame);
+      document.getElementById('btn-next-player').addEventListener('click', preparePlayer2);
+      document.getElementById('btn-restart').addEventListener('click', restart);
+    }
+
+    document.body.addEventListener('touchmove', (e) => {
+      if (currentState === GameState.PLAYING) {
+        e.preventDefault();
+      }
+    }, {passive: false});
+
+    function setState(newState) {
+      currentState = newState;
+      document.querySelectorAll('.overlay').forEach(el => el.classList.remove('active'));
+
+      switch(newState) {
+        case GameState.MODE_SELECT:
+          document.getElementById('screen-mode-select').classList.add('active');
+          break;
+        case GameState.CHARACTER_SELECT:
+          document.getElementById('screen-character-select').classList.add('active');
+          break;
+        case GameState.READY:
+          document.getElementById('screen-ready').classList.add('active');
+          break;
+        case GameState.INTERMISSION:
+          showIntermission();
+          break;
+        case GameState.RESULTS:
+          showResults();
+          break;
+      }
+    }
+
+    function selectMode(mode) {
+      gameMode = mode;
+      waitingForCharacterSelect = player1;
+      document.getElementById('character-select-title').textContent = 'Spieler 1: Wähle deinen Ninja';
+      setState(GameState.CHARACTER_SELECT);
+    }
+
+    function selectCharacter(character, icon) {
+      waitingForCharacterSelect.character = character;
+      waitingForCharacterSelect.icon = icon;
+
+      // Setze Charakterfarbe
+      const characterColors = {
+        kai: { primary: '#990000', accent: '#ff4444', field: '#ffe0e0', fieldActive: '#ffd0d0', border: '#cc0000' },
+        jay: { primary: '#0066cc', accent: '#4da6ff', field: '#e0f0ff', fieldActive: '#d0e8ff', border: '#0052a3' },
+        lloyd: { primary: '#00aa00', accent: '#44ff44', field: '#e0ffe0', fieldActive: '#d0ffd0', border: '#008800' },
+        zane: { primary: '#6699cc', accent: '#99ccff', field: '#f0f8ff', fieldActive: '#e8f4ff', border: '#5580aa' }
+      };
+
+      const colors = characterColors[character];
+      waitingForCharacterSelect.colors = colors;
+
+      if (gameMode === '2player' && waitingForCharacterSelect === player1) {
+        waitingForCharacterSelect = player2;
+        document.getElementById('character-select-title').textContent = 'Spieler 2: Wähle deinen Ninja';
+      } else {
+        preparePlayer1();
+      }
+    }
+
+    function preparePlayer1() {
+      currentPlayer = player1;
+      document.getElementById('ready-title').textContent =
+        gameMode === '1player' ? 'Mach dich bereit!' : 'Spieler 1, mach dich bereit!';
+      setState(GameState.READY);
+    }
+
+    function preparePlayer2() {
+      if (waitingForCharacterSelect === player2 && !player2.character) {
+        document.getElementById('character-select-title').textContent = 'Spieler 2: Wähle deinen Ninja';
+        setState(GameState.CHARACTER_SELECT);
+      } else {
+        currentPlayer = player2;
+        document.getElementById('ready-title').textContent = 'Spieler 2, mach dich bereit!';
+        setState(GameState.READY);
+      }
+    }
+
+    function startGame() {
+      // Audio Context aktivieren (benötigt User-Interaktion)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      resetPlayer(currentPlayer);
+      applyCharacterTheme();
+      setState(GameState.PLAYING);
+      updateUI();
+      startSpawning();
+    }
+
+    function applyCharacterTheme() {
+      if (currentPlayer.colors) {
+        const root = document.documentElement;
+        root.style.setProperty('--primary-red', currentPlayer.colors.primary);
+        root.style.setProperty('--accent-gold', currentPlayer.colors.accent);
+        root.style.setProperty('--field-base', currentPlayer.colors.field);
+        root.style.setProperty('--field-active', currentPlayer.colors.fieldActive);
+        root.style.setProperty('--field-border', currentPlayer.colors.border);
+      }
+    }
+
+    function resetPlayer(player) {
+      player.score = 0;
+      player.lives = 3;
+    }
+
+    function startSpawning() {
+      spawnEmoji();
+    }
+
+    function stopSpawning() {
+      if (spawnTimeout) {
+        clearTimeout(spawnTimeout);
+        spawnTimeout = null;
+      }
+
+      fields.forEach(field => {
+        if (field.emoji) {
+          clearTimeout(field.disappearTimeout);
+          field.element.textContent = '';
+          field.element.classList.remove('has-emoji');
+          field.emoji = null;
+        }
+      });
+    }
+
+    function spawnEmoji() {
+      if (currentState !== GameState.PLAYING) return;
+
+      // Finde ein freies Feld
+      const freeFields = fields.map((f, i) => ({field: f, index: i})).filter(item => !item.field.emoji);
+
+      if (freeFields.length === 0) {
+        // Alle Felder belegt, versuche später nochmal
+        const nextDelay = 500;
+        spawnTimeout = setTimeout(spawnEmoji, nextDelay);
+        return;
+      }
+
+      // Wähle zufälliges freies Feld (vermeide letztes Feld wenn möglich)
+      let fieldIndex;
+      if (freeFields.length === 1) {
+        fieldIndex = freeFields[0].index;
+      } else {
+        const availableFields = freeFields.filter(item => item.index !== lastSpawnIndex);
+        const selectedField = availableFields.length > 0 ? availableFields : freeFields;
+        fieldIndex = selectedField[Math.floor(Math.random() * selectedField.length)].index;
+      }
+      lastSpawnIndex = fieldIndex;
+
+      const rand = Math.random();
+      let emojiType;
+      if (rand < 0.50) emojiType = '🪙';      // 50% Münzen
+      else if (rand < 0.80) emojiType = '💚'; // 30% Herzen
+      else if (rand < 0.92) emojiType = '🔥'; // 12% Feuer
+      else emojiType = '🥷';                   // 8% Ninja
+
+      // Viel langsamer für 5-Jährige: Start 5000ms, min 2500ms, -10ms pro Punkt
+      const displayTime = Math.max(2500, 5000 - (currentPlayer.score * 10));
+
+      const field = fields[fieldIndex];
+      field.emoji = { type: emojiType };
+      field.element.textContent = emojiType;
+      field.element.classList.add('has-emoji');
+      field.element.style.animation = 'spawn 400ms cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+
+      field.disappearTimeout = setTimeout(() => {
+        if (field.emoji) {
+          handleMiss(fieldIndex);
+        }
+      }, displayTime);
+
+      // Spawn-Intervall wird schneller mit Score: Start 2500ms, min 1000ms, -15ms pro Punkt
+      const baseSpawnTime = Math.max(1000, 2500 - (currentPlayer.score * 15));
+      const nextDelay = baseSpawnTime + Math.random() * 1000;
+      spawnTimeout = setTimeout(spawnEmoji, nextDelay);
+    }
+
+    function handleFieldTap(fieldIndex) {
+      const field = fields[fieldIndex];
+      if (!field.emoji) return;
+
+      const emojiType = field.emoji.type;
+
+      clearTimeout(field.disappearTimeout);
+      field.emoji = null;
+
+      switch(emojiType) {
+        case '🪙':
+          handleGoodHit(fieldIndex, emojiType, 10);
+          break;
+        case '💚':
+          handleGoodHit(fieldIndex, emojiType, 30);
+          break;
+        case '🔥':
+        case '🥷':
+          handleBadHit(fieldIndex, emojiType);
+          break;
+      }
+    }
+
+    function handleGoodHit(fieldIndex, emoji, points) {
+      const field = fields[fieldIndex];
+
+      field.element.style.animation = 'hitGood 600ms ease-out forwards';
+
+      currentPlayer.score += points;
+      updateUI();
+
+      showPointsPopup(fieldIndex, `+${points}`);
+      playPositiveSound();
+
+      setTimeout(() => {
+        field.element.textContent = '';
+        field.element.classList.remove('has-emoji');
+        field.element.style.animation = '';
+      }, 600);
+    }
+
+    function handleBadHit(fieldIndex, emoji) {
+      const field = fields[fieldIndex];
+
+      field.element.style.animation = 'damage 500ms, flash 400ms';
+
+      currentPlayer.lives--;
+      updateUI();
+      animateLivesPulse();
+      playNegativeSound();
+
+      setTimeout(() => {
+        field.element.textContent = '';
+        field.element.classList.remove('has-emoji');
+        field.element.style.animation = '';
+      }, 500);
+
+      if (currentPlayer.lives === 0) {
+        endRound();
+      }
+    }
+
+    function handleMiss(fieldIndex) {
+      const field = fields[fieldIndex];
+      field.emoji = null;
+      field.element.style.animation = 'miss 300ms ease-out forwards';
+
+      setTimeout(() => {
+        field.element.textContent = '';
+        field.element.classList.remove('has-emoji');
+        field.element.style.animation = '';
+      }, 300);
+    }
+
+    function healLife() {
+      if (currentPlayer.lives < 3) {
+        currentPlayer.lives++;
+        updateUI();
+        animateLivesHeal();
+      }
+    }
+
+    function showPointsPopup(fieldIndex, text) {
+      const field = fields[fieldIndex];
+      const popup = document.createElement('div');
+      popup.className = 'points-popup';
+      popup.textContent = text;
+      field.element.appendChild(popup);
+
+      setTimeout(() => popup.remove(), 1000);
+    }
+
+    function animateLivesPulse() {
+      const livesEl = document.querySelector('.lives');
+      livesEl.style.animation = 'pulse 500ms';
+      setTimeout(() => livesEl.style.animation = '', 500);
+    }
+
+    function animateLivesHeal() {
+      const livesEl = document.querySelector('.lives');
+      livesEl.style.animation = 'pulse 500ms';
+      livesEl.style.color = '#00ff00';
+      setTimeout(() => {
+        livesEl.style.animation = '';
+        livesEl.style.color = '';
+      }, 500);
+    }
+
+    function updateUI() {
+      document.querySelector('.player-icon').textContent = currentPlayer.icon;
+      document.querySelector('.player-name').textContent = currentPlayer.name;
+      document.querySelector('.score').textContent = currentPlayer.score;
+      document.querySelector('.lives').textContent = '❤️'.repeat(currentPlayer.lives);
+    }
+
+    function endRound() {
+      stopSpawning();
+
+      if (gameMode === '1player' || currentPlayer === player2) {
+        setState(GameState.RESULTS);
+      } else {
+        setState(GameState.INTERMISSION);
+      }
+    }
+
+    function showIntermission() {
+      document.getElementById('screen-intermission').classList.add('active');
+      document.getElementById('intermission-player').textContent = player1.name;
+      document.getElementById('intermission-score').textContent = `${player1.score} Punkte`;
+    }
+
+    function createConfetti() {
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff1493'];
+      const confettiCount = 50;
+
+      for (let i = 0; i < confettiCount; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + '%';
+          confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.animationDelay = Math.random() * 0.5 + 's';
+          confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+
+          document.body.appendChild(confetti);
+
+          setTimeout(() => confetti.remove(), 5000);
+        }, i * 30);
+      }
+    }
+
+    function getCharacterImage(character) {
+      const images = {
+        kai: 'Kai.jpg',
+        jay: 'Jay.jpg',
+        lloyd: 'Lloyd.jpg',
+        zane: 'Zane.jpg'
+      };
+      return images[character] || '';
+    }
+
+    function showResults() {
+      // Audio Context aktivieren falls nötig
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      playVictorySound();
+      createConfetti();
+
+      let winnerText = '🎉 Gut gemacht!';
+      let winnerImageHTML = '';
+      let resultsHTML = '';
+
+      if (gameMode === '1player') {
+        winnerText = `🎉 ${player1.score} Punkte!`;
+        if (player1.character) {
+          winnerImageHTML = `<img src="${getCharacterImage(player1.character)}" class="winner-ninja-image" alt="${player1.character}">`;
+        }
+        resultsHTML = `
+          ${player1.character ? `<img src="${getCharacterImage(player1.character)}" class="ninja-result-image" alt="${player1.character}">` : ''}
+          <div class="result-row">
+            <span>${player1.icon} ${player1.name}:</span>
+            <span>${player1.score}</span>
+          </div>
+        `;
+      } else {
+        const winner = player1.score > player2.score ? player1 :
+                       player2.score > player1.score ? player2 : null;
+
+        if (winner) {
+          winnerText = `👑 ${winner.name} gewinnt!`;
+          if (winner.character) {
+            winnerImageHTML = `<img src="${getCharacterImage(winner.character)}" class="winner-ninja-image" alt="${winner.character}">`;
+          }
+        } else {
+          winnerText = '🤝 Unentschieden!';
+        }
+
+        resultsHTML = `
+          ${player1.character ? `<img src="${getCharacterImage(player1.character)}" class="ninja-result-image" alt="${player1.character}">` : ''}
+          <div class="result-row">
+            <span>${player1.icon} ${player1.name}:</span>
+            <span>${player1.score}</span>
+          </div>
+          ${player2.character ? `<img src="${getCharacterImage(player2.character)}" class="ninja-result-image" alt="${player2.character}">` : ''}
+          <div class="result-row">
+            <span>${player2.icon} ${player2.name}:</span>
+            <span>${player2.score}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('winner-text').innerHTML = winnerImageHTML + winnerText;
+      document.getElementById('results-content').innerHTML = resultsHTML;
+      document.getElementById('screen-results').classList.add('active');
+    }
+
+    function restart() {
+      resetPlayer(player1);
+      resetPlayer(player2);
+      player1.character = null;
+      player1.icon = '🔴';
+      player1.colors = null;
+      player2.character = null;
+      player2.icon = '🔵';
+      player2.colors = null;
+      currentPlayer = null;
+      waitingForCharacterSelect = null;
+      gameMode = null;
+      lastSpawnIndex = -1;
+
+      // Reset zu Standard-Farben
+      const root = document.documentElement;
+      root.style.setProperty('--primary-red', '#990000');
+      root.style.setProperty('--accent-gold', '#FFD700');
+      root.style.setProperty('--field-base', '#e8dcc0');
+      root.style.setProperty('--field-active', '#f5ecd7');
+      root.style.setProperty('--field-border', '#8b7355');
+
+      setState(GameState.MODE_SELECT);
+    }
+  </script>
+</body>
+</html>
