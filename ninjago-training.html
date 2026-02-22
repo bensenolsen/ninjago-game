@@ -454,7 +454,9 @@
         <strong style="color: var(--accent-gold);">Tippe an:</strong><br>
         🪙 = 10 Punkte | 💚 = 30 Punkte<br><br>
         <strong style="color: var(--damage-red);">NICHT antippen:</strong><br>
-        🔥 🥷 = -1 Leben
+        🔥 🥷 = -1 Leben<br><br>
+        <strong style="color: var(--damage-red);">Nicht verpasst lassen:</strong><br>
+        🪙 💚 verschwinden = -1 Leben
       </p>
       <button class="btn-primary" id="btn-start-game">Los geht's!</button>
     </div>
@@ -789,8 +791,9 @@
       else if (rand < 0.92) emojiType = '🔥'; // 12% Feuer
       else emojiType = '🥷';                   // 8% Ninja
 
-      // Viel langsamer für 5-Jährige: Start 5000ms, min 2500ms, -10ms pro Punkt
-      const displayTime = Math.max(2500, 5000 - (currentPlayer.score * 10));
+      // Skalierung: teilt durch wachsenden Faktor → wird immer schneller, auch bei hohem Score
+      const scaleFactor = 1 + currentPlayer.score / 300;
+      const displayTime = Math.max(700, Math.round(5000 / scaleFactor));
 
       const field = fields[fieldIndex];
       field.emoji = { type: emojiType };
@@ -804,9 +807,8 @@
         }
       }, displayTime);
 
-      // Spawn-Intervall wird schneller mit Score: Start 2500ms, min 1000ms, -15ms pro Punkt
-      const baseSpawnTime = Math.max(1000, 2500 - (currentPlayer.score * 15));
-      const nextDelay = baseSpawnTime + Math.random() * 1000;
+      const baseSpawnTime = Math.max(400, Math.round(2500 / scaleFactor));
+      const nextDelay = baseSpawnTime + Math.random() * 500;
       spawnTimeout = setTimeout(spawnEmoji, nextDelay);
     }
 
@@ -874,6 +876,7 @@
 
     function handleMiss(fieldIndex) {
       const field = fields[fieldIndex];
+      const missedType = field.emoji ? field.emoji.type : null;
       field.emoji = null;
       field.element.style.animation = 'miss 300ms ease-out forwards';
 
@@ -882,6 +885,16 @@
         field.element.classList.remove('has-emoji');
         field.element.style.animation = '';
       }, 300);
+
+      if (missedType === '🪙' || missedType === '💚') {
+        currentPlayer.lives--;
+        updateUI();
+        animateLivesPulse();
+        playNegativeSound();
+        if (currentPlayer.lives === 0) {
+          setTimeout(() => endRound(), 400);
+        }
+      }
     }
 
     function healLife() {
